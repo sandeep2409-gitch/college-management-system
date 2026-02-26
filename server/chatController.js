@@ -113,14 +113,9 @@ const handleChat = async (req, res, db) => {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({
         model: "gemini-1.5-flash",
-        systemInstruction: `You are the "College 360 AI Assistant".
-        Current User: ${userName} (${userRole}).
-        System Stats: ${stats.studentCount} students, ${stats.resourceCount} resources, ${stats.pendingComplaints} complaints.
-
-        Guidelines:
-        - Use real-time stats if asked.
-        - Direct users to paths like /attendance, /resources, etc.
-        - Tone: Sophisticated, technical, yet helpful.`
+        systemInstruction: `You are the College 360 AI. User: ${userName}. 
+        Direct links: /attendance, /resources, /outpass, /visitors, /feedback, /complaints.
+        Tone: Professional, very concise, no emojis.`
       });
 
       const chat = model.startChat({
@@ -140,7 +135,7 @@ const handleChat = async (req, res, db) => {
 
 
   res.json({
-    message: `I'm analyzing your request, ${userName}, but I couldn't find a direct campus link. Try asking about **Attendance**, **Resources**, or **Feedback**!`
+    message: "I couldn't find a direct link for that. Try asking about **Attendance**, **Time Table**, or **Resources**."
   });
 };
 

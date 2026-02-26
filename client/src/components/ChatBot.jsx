@@ -1,255 +1,225 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, useScroll } from 'framer-motion';
-import { MessageSquare, X, Send, Sparkles, User, Loader2, Command, Zap, Bot, ShieldCheck, Star, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MessageSquare, X, Send, Sparkles, User, Loader2, Bot, Plus, ArrowUp, Zap, ChevronRight, Share2, MoreHorizontal, Clock, FileText } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
 const ChatBot = () => {
-  const { user } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      role: 'bot',
-      text: user ? `Welcome back, ${user.name}! I'm your College 360 AI. How can I assist you in the ${user.role} portal today?` : "Hello! I'm your AI campus assistant. How can I help you navigate College 360 today?",
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-  ]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef(null);
+    const { user } = useAuth();
+    const [isOpen, setIsOpen] = useState(false);
+    const [messages, setMessages] = useState([]);
+    const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const messagesEndRef = useRef(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    if (isOpen) scrollToBottom();
-  }, [messages, isOpen]);
-
-  const handleSend = async (customInput) => {
-    const messageToSend = customInput || input;
-    if (!messageToSend.trim() || isLoading) return;
-
-    const userMessage = {
-      role: 'user',
-      text: messageToSend,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
+    useEffect(() => {
+        if (isOpen) scrollToBottom();
+    }, [messages, isOpen]);
 
-    try {
-      const history = messages.map(msg => ({
-        role: msg.role === 'bot' ? 'model' : 'user',
-        parts: [{ text: msg.text }]
-      }));
+    const handleSend = async (customInput) => {
+        const messageToSend = customInput || input;
+        if (!messageToSend.trim() || isLoading) return;
 
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/chat`, {
-        message: messageToSend,
-        history: history,
-        userContext: user ? { name: user.name, role: user.role, id: user.id } : null
-      });
+        const userMessage = {
+            role: 'user',
+            text: messageToSend,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
 
-      const botMessage = {
-        role: 'bot',
-        text: response.data.message,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
+        setMessages(prev => [...prev, userMessage]);
+        setInput('');
+        setIsLoading(true);
 
-      setMessages(prev => [...prev, botMessage]);
-    } catch (error) {
-      console.error('Chat error:', error);
-      setMessages(prev => [...prev, {
-        role: 'bot',
-        text: 'Connection failed. Please ensure the backend is live.',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        try {
+            const history = messages.map(msg => ({
+                role: msg.role === 'bot' ? 'model' : 'user',
+                parts: [{ text: msg.text }]
+            }));
 
-  const renderText = (text) => {
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/chat`, {
+                message: messageToSend,
+                history: history,
+                userContext: user ? { name: user.name, role: user.role, id: user.id } : null
+            });
 
-    const parts = text.split(/(\*\*.*?\*\*|\/api\/\w+|\/\w+)/);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className="text-white font-black drop-shadow-sm">{part.slice(2, -2)}</strong>;
-      }
-      if (part.startsWith('/')) {
-        return <span key={i} className="px-2 py-0.5 bg-white/20 rounded font-mono text-[10px] tracking-wider uppercase border border-white/20 select-all">{part}</span>;
-      }
-      return part;
-    });
-  };
+            const botMessage = {
+                role: 'bot',
+                text: response.data.message,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
 
-  const QuickAction = ({ icon: Icon, label, query }) => (
-    <motion.button
-      whileHover={{ y: -2, scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={() => handleSend(query)}
-      className="flex flex-col items-center gap-2 p-3 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 hover:border-white/20 transition-all text-center"
-    >
-      <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary group-hover:text-white transition-colors">
-        <Icon size={20} />
-      </div>
-      <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">{label}</span>
-    </motion.button>
-  );
+            setMessages(prev => [...prev, botMessage]);
+        } catch (error) {
+            console.error('Chat error:', error);
+            setMessages(prev => [...prev, {
+                role: 'bot',
+                text: 'I encountered an issue connecting to the campus core. Please try again later.',
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-  return (
-    <div className="fixed bottom-8 right-8 z-[1001]">
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 30, filter: 'blur(10px)' }}
-            animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, scale: 0.8, y: 20, filter: 'blur(10px)' }}
-            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            className="mb-6 w-[400px] sm:w-[450px] bg-black/80 backdrop-blur-3xl rounded-[32px] shadow-[0_32px_80px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden flex flex-col h-[650px]"
-          >
-            {}
-            <div className="p-6 bg-gradient-to-br from-primary via-[#4f46e5] to-[#8b5cf6] relative">
-              <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                <Sparkles size={120} />
-              </div>
-              <div className="flex justify-between items-start">
-                <div className="flex gap-4">
-                  <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center relative border border-white/20 shadow-inner group">
-                    <Zap className="text-white drop-shadow-[0_0_8px_rgba(255,b55,255,0.8)]" />
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[#141416] animate-pulse" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-                      College 360 AI <ShieldCheck size={16} className="text-white/60" />
-                    </h3>
-                    <p className="text-white/60 text-xs font-bold uppercase tracking-[0.2em]">{isLoading ? 'Synthesizing...' : 'Adaptive Intelligence'}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="bg-black/20 hover:bg-black/40 p-2 rounded-xl transition-all border border-white/5"
-                >
-                  <X size={20} className="text-white" />
-                </button>
-              </div>
-            </div>
+    const renderText = (text) => {
+        // Simple markdown-style rendering for ChatGPT feel
+        const parts = text.split(/(\*\*.*?\*\*|```.*?```)/s);
+        return parts.map((part, i) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={i} className="font-bold text-white">{part.slice(2, -2)}</strong>;
+            }
+            if (part.startsWith('```') && part.endsWith('```')) {
+                return (
+                    <pre key={i} className="bg-[#0d0d0d] p-4 rounded-xl my-3 font-mono text-xs text-green-400 overflow-x-auto border border-white/5">
+                        {part.slice(3, -3)}
+                    </pre>
+                );
+            }
+            return <span key={i} className="whitespace-pre-wrap">{part}</span>;
+        });
+    };
 
-            {}
-            <div className="flex-1 overflow-y-auto p-6 space-y-8 scroll-smooth" id="chat-messages">
-              {messages.map((msg, index) => (
-                <motion.div
-                  initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  key={index}
-                  className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
-                >
-                  <div className={`flex items-center gap-2 mb-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center border ${msg.role === 'user' ? 'bg-white/10 border-white/10' : 'bg-primary/20 border-primary/20'}`}>
-                      {msg.role === 'user' ? <User size={12} className="text-white" /> : <Command size={12} className="text-primary" />}
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-white/30">
-                      {msg.role === 'user' ? (user?.name || 'You') : 'System Core'}
-                    </span>
-                  </div>
+    return (
+        <div className="fixed bottom-6 right-6 z-[1001]">
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.98, y: 30 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.98, y: 15 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 400 }}
+                        className="mb-4 w-[calc(100vw-40px)] sm:w-[400px] h-[600px] max-h-[75vh] bg-[#242424] text-[#f2f2f2] rounded-2xl shadow-xl border border-white/5 flex flex-col overflow-hidden z-[1002]"
+                    >
+                        {/* Header - Minimal Gray */}
+                        <div className="flex items-center justify-between p-4 border-b border-white/5 bg-[#2a2a2a]">
+                            <div className="flex flex-col ml-2">
+                                <h3 className="text-[13px] font-bold text-white tracking-wide">Campus AI</h3>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <div className="w-1 h-1 bg-[#10a37f] rounded-full" />
+                                    <span className="text-[8px] text-white/30 font-bold uppercase tracking-widest">Active</span>
+                                </div>
+                            </div>
+                        </div>
 
-                  <div className={`relative px-5 py-4 rounded-[24px] text-sm leading-relaxed shadow-lg ${
-                    msg.role === 'user'
-                      ? 'bg-primary text-white rounded-tr-none border border-white/10'
-                      : 'bg-white/5 text-white/90 rounded-tl-none border border-white/5 backdrop-blur-sm'
-                  }`}>
-                    {renderText(msg.text)}
-                    <span className={`absolute -bottom-5 text-[9px] font-bold opacity-30 ${msg.role === 'user' ? 'right-0' : 'left-0'}`}>
-                      {msg.time}
-                    </span>
-                  </div>
-                </motion.div>
-              ))}
+                        {/* Messages Area - Pure & Gray */}
+                        <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6 custom-scrollbar bg-[#242424]">
+                            {messages.length === 0 && (
+                                <div className="h-full flex flex-col items-center justify-center text-center px-6">
+                                    <p className="text-white/30 text-xs mb-8 uppercase tracking-[0.2em] font-bold">New Conversation</p>
+                                    
+                                    <div className="grid grid-cols-1 gap-2 w-full max-w-xs">
+                                        {[
+                                            { icon: Zap, text: 'Check Attendance', query: 'Get my attendance' },
+                                            { icon: Clock, text: 'Class Schedule', query: 'My timetable' },
+                                            { icon: FileText, text: 'Study Notes', query: 'Academic resources' }
+                                        ].map((item, idx) => (
+                                            <button 
+                                                key={idx}
+                                                onClick={() => handleSend(item.query)}
+                                                className="p-3 bg-white/5 border border-white/5 rounded-xl text-left hover:bg-white/10 transition-all flex items-center gap-3 group"
+                                            >
+                                                <item.icon size={14} className="text-[#10a37f]/50" />
+                                                <span className="text-xs font-medium text-white/50 group-hover:text-white">{item.text}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
-              {isLoading && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-start">
-                  <div className="bg-white/5 border border-white/5 px-6 py-4 rounded-[24px] rounded-tl-none flex gap-2">
-                    <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5 }} className="w-2 h-2 bg-primary rounded-full" />
-                    <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0.2 }} className="w-2 h-2 bg-primary rounded-full" />
-                    <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0.4 }} className="w-2 h-2 bg-primary rounded-full" />
-                  </div>
-                </motion.div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+                            {messages.map((msg, idx) => (
+                                <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                                    <div className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center ${
+                                        msg.role === 'bot' ? 'bg-[#3a3a3a] text-[#10a37f]' : 'bg-white/10 text-white/80'
+                                    }`}>
+                                        {msg.role === 'bot' ? <Bot size={16} /> : <User size={16} />}
+                                    </div>
+                                    <div className={`flex flex-col gap-1 max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                        <div className={`px-4 py-2.5 rounded-xl text-sm leading-relaxed ${
+                                            msg.role === 'user' 
+                                                ? 'bg-[#10a37f] text-white' 
+                                                : 'bg-[#2a2a2a] text-white/90 border border-white/5'
+                                        }`}>
+                                            {renderText(msg.text)}
+                                        </div>
+                                        <span className="text-[9px] text-white/10 font-bold px-1 uppercase tracking-tighter">{msg.time}</span>
+                                    </div>
+                                </div>
+                            ))}
+                            {isLoading && (
+                                <div className="flex gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-[#3a3a3a] text-[#10a37f] flex items-center justify-center">
+                                        <Bot size={16} />
+                                    </div>
+                                    <div className="bg-[#2a2a2a] px-4 py-3 rounded-xl flex items-center gap-1.5 border border-white/5">
+                                        <div className="w-1 h-1 bg-white/20 rounded-full animate-pulse" />
+                                        <div className="w-1 h-1 bg-white/20 rounded-full animate-pulse [animation-delay:0.2s]" />
+                                        <div className="w-1 h-1 bg-white/20 rounded-full animate-pulse [animation-delay:0.4s]" />
+                                    </div>
+                                </div>
+                            )}
+                            <div ref={messagesEndRef} />
+                        </div>
 
-            {}
-            <div className="p-6 bg-black/40 border-t border-white/10 backdrop-blur-3xl">
-              {!input && messages.length <= 2 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="grid grid-cols-3 gap-3 mb-6"
-                >
-                  <QuickAction icon={Star} label="Academic" query="What study materials are available?" />
-                  <QuickAction icon={Zap} label="Attendance" query="Check my attendance status" />
-                  <QuickAction icon={AlertCircle} label="Complaints" query="How do I file a complaint?" />
-                </motion.div>
-              )}
+                        {/* Input Area - Integrated & Neutral */}
+                        <div className="p-4 bg-[#2a2a2a] border-t border-white/5">
+                            <div className="relative flex items-center gap-2 bg-[#1a1a1a] p-1.5 pr-2 rounded-xl border border-white/5 focus-within:border-white/10 transition-all">
+                                <textarea
+                                    rows="1"
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleSend();
+                                        }
+                                    }}
+                                    placeholder="Message AI..."
+                                    className="flex-1 bg-transparent py-2 px-3 text-sm text-white/80 placeholder:text-white/20 focus:outline-none resize-none"
+                                    style={{ height: 'auto' }}
+                                />
+                                <button 
+                                    onClick={() => handleSend()}
+                                    disabled={!input.trim() || isLoading}
+                                    className={`p-2 rounded-lg transition-all ${
+                                        input.trim() ? 'bg-[#10a37f] text-white' : 'text-white/5'
+                                    }`}
+                                >
+                                    {isLoading ? <Loader2 size={16} className="animate-spin" /> : <ArrowUp size={16} strokeWidth={3} />}
+                                </button>
+                            </div>
+                            <div className="text-center mt-3 mb-1">
+                                <span className="text-[8px] text-white/10 font-bold uppercase tracking-[0.4em]">Integrated Intelligence</span>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary to-[#8b5cf6] rounded-[24px] blur opacity-20 group-focus-within:opacity-40 transition-all" />
-                <div className="relative flex items-center gap-3 bg-[#1A1A1E] p-2 rounded-[22px] border border-white/10 transition-all focus-within:border-primary/50">
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder="Ask College 360 AI..."
-                    className="flex-1 bg-transparent py-3 px-4 text-sm font-semibold text-white placeholder:text-white/20 focus:outline-none"
-                  />
-                  <motion.button
-                    whileHover={{ scale: 1.05, x: 2 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleSend()}
-                    disabled={isLoading || !input.trim()}
-                    className={`p-3 rounded-2xl transition-all ${
-                      input.trim() ? 'bg-primary text-white shadow-[0_0_20px_rgba(99,102,241,0.5)]' : 'bg-white/5 text-white/20'
-                    }`}
-                  >
-                    {isLoading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} strokeWidth={2.5} />}
-                  </motion.button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsOpen(!isOpen)}
+                className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${
+                    isOpen ? 'bg-white text-black rotate-90' : 'bg-[#10a37f] text-white'
+                }`}
+            >
+                {isOpen ? <X size={28} /> : <MessageSquare size={28} />}
+            </motion.button>
 
-      <motion.button
-        layout
-        autoFocus
-        whileHover={{ scale: 1.05, y: -4 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-18 h-18 rounded-[24px] flex items-center justify-center shadow-[0_20px_40px_rgba(0,0,0,0.4)] relative group overflow-hidden transition-all duration-500 ${
-          isOpen ? 'bg-white text-black' : 'bg-primary text-white'
-        }`}
-        style={{ width: '72px', height: '72px' }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-        {isOpen ? (
-          <X size={32} strokeWidth={2.5} />
-        ) : (
-          <div className="relative">
-            <Bot size={36} strokeWidth={2.5} />
-            <motion.div
-              animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className="absolute -inset-2 bg-white rounded-full blur-md -z-1"
-            />
-          </div>
-        )}
-      </motion.button>
-    </div>
-  );
+            <style>{`
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+                .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+            `}</style>
+        </div>
+    );
 };
 
 export default ChatBot;

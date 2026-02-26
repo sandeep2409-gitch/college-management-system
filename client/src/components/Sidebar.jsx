@@ -16,7 +16,9 @@ import {
   Moon,
   Clock,
   User,
-  QrCode
+  QrCode,
+  UserPlus,
+  Send
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -36,6 +38,8 @@ const Sidebar = () => {
     { path: '/timetable', icon: Clock, label: 'Time Table' },
     { path: '/attendance', icon: QrCode, label: 'Attendance' },
     { path: '/resources', icon: BookOpen, label: 'Resources' },
+    { path: '/visitors', icon: UserPlus, label: 'Visitors' },
+    { path: '/outpass', icon: Send, label: 'Out Pass' },
     { path: '/feedback', icon: Star, label: 'Faculty' },
     { path: '/complaints', icon: AlertCircle, label: 'Complaints' },
     { path: '/profile', icon: User, label: 'My Grid' },

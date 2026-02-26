@@ -5,7 +5,7 @@ const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
-const bcrypt = require("bcryptjs");
+// bcrypt removed for plain text storage
 const jwt = require("jsonwebtoken");
 
 const chatbot = require("./chatController");
@@ -100,6 +100,32 @@ function initializeDatabase() {
       "CREATE TABLE IF NOT EXISTS complaints (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, description TEXT, status TEXT DEFAULT 'pending', submittedBy INTEGER)",
     );
 
+    // Visitors Table
+    db.run(`CREATE TABLE IF NOT EXISTS visitors (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      contact TEXT NOT NULL,
+      purpose TEXT NOT NULL,
+      visitDate TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      entryTime TEXT,
+      exitTime TEXT
+    )`);
+
+    // Out Pass Table
+    db.run(`CREATE TABLE IF NOT EXISTS out_pass (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      studentId INTEGER NOT NULL,
+      studentName TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      destination TEXT NOT NULL,
+      departureDate TEXT NOT NULL,
+      returnDate TEXT,
+      status TEXT DEFAULT 'pending',
+      requestTime DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(studentId) REFERENCES users(id)
+    )`);
+
     // Events
     db.run(
       "CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, date TEXT NOT NULL, location TEXT, description TEXT, type TEXT)",
@@ -117,7 +143,7 @@ function initializeDatabase() {
       [adminEmail],
       async (err, row) => {
         if (!row) {
-          const hashedPassword = await bcrypt.hash("admin123", 10);
+          const hashedPassword = "admin123";
           db.run(
             "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
             ["System Admin", adminEmail, hashedPassword, "admin"],
@@ -183,7 +209,7 @@ app.post("/api/register", async (req, res) => {
   }
 
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = password;
     db.run(
       "INSERT INTO users (name, email, password, role, studentId) VALUES (?, ?, ?, ?, ?)",
       [name, email, hashedPassword, role || "student", studentId || null],
@@ -226,7 +252,7 @@ app.post("/api/login", (req, res) => {
       if (err) return res.status(500).json({ error: err.message });
       if (!user) return res.status(401).json({ error: "User not found" });
 
-      const isMatch = await bcrypt.compare(password, user.password);
+      const isMatch = (password === user.password);
       if (!isMatch)
         return res.status(401).json({ error: "Invalid credentials" });
 
@@ -406,7 +432,7 @@ app.post(
     }
 
     try {
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = password;
       db.run(
         "INSERT INTO users (name, email, password, role, studentId) VALUES (?, ?, ?, ?, ?)",
         [name, email, hashedPassword, role, studentId],
@@ -774,6 +800,91 @@ app.post("/api/timetable", authenticateToken, isAdmin, (req, res) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ message: "Timetable updated successfully" });
     },
+  );
+});
+
+// --- Visitors API ---
+app.post("/api/visitors", (req, res) => {
+  const { name, contact, purpose, visitDate } = req.body;
+  db.run(
+    "INSERT INTO visitors (name, contact, purpose, visitDate) VALUES (?, ?, ?, ?)",
+    [name, contact, purpose, visitDate],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.status(201).json({ id: this.lastID, message: "Visitor request submitted" });
+    }
+  );
+});
+
+app.get("/api/visitors", authenticateToken, (req, res) => {
+  db.all("SELECT * FROM visitors ORDER BY visitDate DESC", [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+app.put("/api/visitors/:id/status", authenticateToken, isAdmin, (req, res) => {
+  const { id } = req.params;
+  const { status, entryTime, exitTime } = req.body;
+  db.run(
+    "UPDATE visitors SET status = ?, entryTime = ?, exitTime = ? WHERE id = ?",
+    [status, entryTime || null, exitTime || null, id],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: "Visitor status updated" });
+    }
+  );
+});
+
+// --- Out Pass API ---
+app.post("/api/outpass", authenticateToken, (req, res) => {
+  const { reason, destination, departureDate, returnDate } = req.body;
+  const studentId = req.user.id;
+  const studentName = req.user.name;
+
+  db.run(
+    "INSERT INTO out_pass (studentId, studentName, reason, destination, departureDate, returnDate) VALUES (?, ?, ?, ?, ?, ?)",
+    [studentId, studentName, reason, destination, departureDate, returnDate],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.status(201).json({ id: this.lastID, message: "Out-pass request submitted" });
+    }
+  );
+});
+
+app.get("/api/outpass", authenticateToken, (req, res) => {
+  const query = req.user.role === 'admin' 
+    ? "SELECT * FROM out_pass ORDER BY departureDate DESC"
+    : "SELECT * FROM out_pass WHERE studentId = ? ORDER BY departureDate DESC";
+  const params = req.user.role === 'admin' ? [] : [req.user.id];
+
+  db.all(query, params, (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+app.put("/api/outpass/:id/approve", authenticateToken, isAdmin, (req, res) => {
+  const { id } = req.params;
+  db.run(
+    "UPDATE out_pass SET status = 'approved' WHERE id = ?",
+    [id],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: "Out-pass approved" });
+    }
+  );
+});
+
+app.put("/api/outpass/:id/reject", authenticateToken, isAdmin, (req, res) => {
+  const { id } = req.params;
+  db.run(
+    "UPDATE out_pass SET status = 'rejected' WHERE id = ?",
+    [id],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: "Out-pass rejected" });
+    }
   );
 });
 

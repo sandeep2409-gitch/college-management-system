@@ -15,6 +15,8 @@ import ManageStudents from './pages/ManageStudents';
 import EventCalendar from './pages/EventCalendar';
 import TimeTable from './pages/TimeTable';
 import Profile from './pages/Profile';
+import Visitors from './pages/Visitors';
+import OutPass from './pages/OutPass';
 import ChatBot from './components/ChatBot';
 import { NotificationProvider } from './context/NotificationContext';
 
@@ -41,6 +43,8 @@ function App() {
                 <Route path="/calendar" element={<EventCalendar />} />
                 <Route path="/timetable" element={<TimeTable />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/visitors" element={<Visitors />} />
+                <Route path="/outpass" element={<OutPass />} />
               </Routes>
               <ChatBot />
             </MainLayout>
