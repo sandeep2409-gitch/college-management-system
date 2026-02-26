@@ -73,4 +73,5 @@ College360 is a modern, full-stack ERP solution designed to automate university 
 
 - **UNIQUE Constraints**: Prevents duplicate Student IDs or Email registrations at the database level.
 - **Schema Healer**: The backend automatically migrates and adds missing columns (like `verified` or `studentId`) on startup to prevent system crashes.
-# college-management-system
+
+# a project by cypher trio
